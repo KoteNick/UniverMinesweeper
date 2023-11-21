@@ -1,0 +1,21 @@
+        zonesTot = 0
+        for x in range(self.size):
+            for y in range(self.size):
+                if self[x, y].contain == '':
+                    scan = Scan(x, y, self)
+                    if self[x, y].zoneid == 0 and (not scan.hasZones() or zonesTot==0):
+                        zonesTot+=1
+                        self[x, y].zoneid = zonesTot
+                    if (scan.hasEmpty()):
+                        if (scan.hasZones()):self[x, y].zoneid = scan.hasZones()
+                        else:
+                            for i in scan.zone:
+                                if i.contain == '':
+                                    i.zoneid = self[x, y].zoneid
+grid
+
+
+    def hasZones(self):
+        for i in self.zone:
+            if (i.zoneid>0): return i.zoneid
+        return 0
