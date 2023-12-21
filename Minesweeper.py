@@ -3,6 +3,7 @@ from tkinter import *
 from tkinter import font
 import random
 import threading
+import score
 from tkinter import messagebox as mb
 
 mine = '💣'
@@ -106,7 +107,7 @@ class Cell(Button):
         self['bg'] = 'red'
 
 class Grid:
-    def __init__(self, size, parent):
+    def __init__(self, size, parent:Frame, root:Tk):
         self.grid = []
         self.parent = parent
         self.size = size
@@ -114,7 +115,7 @@ class Grid:
         self.blown = False
         self.setFlags()
         self.flagCounter = Counter
-        #self.root = root
+        self.root = root
         self.__makeField()
         self.generate()
     def setFlags(self):
@@ -128,12 +129,13 @@ class Grid:
     def regenerate(self):
         for col in self.grid:
             for cell in col:
-                cell.grid_remove()
-                del cell
-            del col
-        del self.grid
-        self.grid = []
-        self.__makeField()
+                cell.contain=''
+                cell.shown = False
+                cell.flagged = False
+                cell['text'] = ''
+                cell['state'] = 'normal'
+                cell['bg'] = self.parent.cget("bg")
+        self.mines.clear()
         self.generate()
         self.setFlags()
         self.blown = False
@@ -159,6 +161,8 @@ class Grid:
             self.stop()
             self.showOthers()
             mb.showinfo("Перемога!", f"Ви виграли!!! Ваш час: {timer.secsToText()}")
+            self.root.withdraw()
+            if (score.writeScore(timer.seconds)): self.root.deiconify()
     def stop(self):
         self.blown = True
         gameIsOn = False
@@ -216,7 +220,19 @@ def clock(timer:Timer):
             timer.addSecond()
         time.sleep(1)
 
+def config():
+    global cells, winwidth, mineAmount
+    cells = size * size
+    mineAmount = int(cells / 6)
+
 def game():
+    config()
+    def redo():
+        global size
+        root.quit()
+        root.destroy()
+        size = 15
+        game()
     root = Tk()
     root.title("Сапер")
     #root.geometry(f"{winwidth}x{size*41 + 50}")
@@ -225,15 +241,17 @@ def game():
     f1 = font.Font(family="Arial", size=9, weight="bold")
     gameIsOn = True
 
+    menu = Menu(root)
+    root.config(menu=menu)
+    menu.add_command(label="HUY", command=redo)
+
     top = Frame(bg='gray', height=50, width=winwidth)
     top.grid_columnconfigure(tuple(range(3)), weight=1)
     top.grid(row=0, column=0, sticky='NSWE')
     global timer
-
-
     field = Frame(width=winwidth)
     field.grid(row=1, column=0)
-    grid = Grid(size, field)
+    grid = Grid(size, field, root)
     timer = Timer(top, grid)
     mineCounter = Counter(top, mine, grid)
     flagCounter = Counter(top, flag, grid, 2, "E")
@@ -242,7 +260,6 @@ def game():
     thr.start()
 
     #grid.showAll()
-
     root.mainloop()
 
 if __name__ == "__main__":
