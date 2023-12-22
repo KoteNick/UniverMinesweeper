@@ -19,12 +19,12 @@ gameIsOn = False
 colors = {1: "blue", 2:"green", 3: "red", 4:"darkblue", 5:"darkred", 6:"cyan", 7:"black", 8:"darkgray"}
 
 class Counter(Label):
-    def __init__(self, parent, char, field:Grid, col=0, stick="W"):
+    def __init__(self, parent, char, col=0, stick="W"):
         super().__init__(parent, bg="darkgray")
         self.grid(row=0, column=col, sticky=stick)
-        self.field = field
+        self.field = Grid
         self.char = char
-        self.upd()
+        #self.upd()
     def upd(self):
         num = 0
         if (self.char == mine):num = mineAmount
@@ -32,18 +32,29 @@ class Counter(Label):
         self['text'] = f"{self.char}: {num}"
 
 class Timer(Button):
-    def __init__(self, parent, field:Grid):
-        self.field = field
+    def __init__(self, parent):
+        self.field = Grid
         self.seconds = 0
         super().__init__(parent, font=f1, width=10, bg="darkgray", command=self.__press)
         self.grid(row=0, column=1, sticky="WE")
         self.on = True
+        self.thr = threading.Thread()
+        self.__ev = threading.Event()
     def __press(self):
         self.field.regenerate()
+        gameIsOn = True
+        self.start()
+    def __clock(self):
+        while self.on:
+            self.addSecond()
+            time.sleep(1)
+    def start(self):
         self.seconds = -1
         self.addSecond()
         self.on = True
-        gameIsOn = True
+        if (not self.thr.is_alive()):
+            self.thr = threading.Thread(target=self.__clock, args=(), daemon=True)
+            self.thr.start()
     def secsToText(self):
         mins = self.seconds//60
         secs = self.seconds%60
@@ -109,6 +120,7 @@ class Cell(Button):
 class Grid:
     def __init__(self, size, parent:Frame, root:Tk):
         self.grid = []
+        self.counters = []
         self.parent = parent
         self.size = size
         self.mines = []
@@ -178,6 +190,12 @@ class Grid:
                     self[x, y].show()
     def __getitem__(self, xy) -> Cell:
         return self.grid[xy[0]][xy[1]]
+    def destroy(self):
+        for col in self.grid:
+            for cell in col:
+                cell.grid_forget()
+                del cell
+        self.parent.grid_forget()
 
 class Scan: #проверяет область 3x3 вокруг центра x y
     def __init__(self, x, y, field:Grid):
@@ -214,54 +232,61 @@ class Scan: #проверяет область 3x3 вокруг центра x y
         for i in self.zone:
             if (not i.shown and not i.flagged):i.press()
 
-def clock(timer:Timer):
-    while True:
-        if (timer.on):
-            timer.addSecond()
-        else: break
-        time.sleep(1)
-
 def config():
     global cells, winwidth, mineAmount
     cells = size * size
     mineAmount = int(cells / 6)
 
-def game():
+def redo(s = 10):
+    global size, grid
+    grid.destroy()
+    timer.on = False
+    gameIsOn = False
+    size = s
     config()
-    def redo():
-        global size
-        root.quit()
-        root.destroy()
-        size = 15
-        game()
-    root = Tk()
-    root.title("Сапер")
-    #root.geometry(f"{winwidth}x{size*41 + 50}")
-    root.resizable(FALSE, FALSE)
-    global f1
-    f1 = font.Font(family="Arial", size=9, weight="bold")
+    game()
+
+def game():
+    global grid
     gameIsOn = True
-
-    menu = Menu(root)
-    root.config(menu=menu)
-    menu.add_command(label="HUY", command=redo)
-
-    top = Frame(bg='gray', height=50, width=winwidth)
-    top.grid_columnconfigure(tuple(range(3)), weight=1)
-    top.grid(row=0, column=0, sticky='NSWE')
-    global timer
-    field = Frame(width=winwidth)
+    field = Frame()
     field.grid(row=1, column=0)
     grid = Grid(size, field, root)
-    timer = Timer(top, grid)
-    mineCounter = Counter(top, mine, grid)
-    flagCounter = Counter(top, flag, grid, 2, "E")
+    timer.field = grid
+    mineCounter.field = grid
+    mineCounter.upd()
+    flagCounter.field = grid
+    flagCounter.upd()
     grid.flagCounter = flagCounter
-    thr = threading.Thread(target=clock, args=(timer,), daemon=True)
-    thr.start()
-
+    timer.start()
     #grid.showAll()
-    root.mainloop()
 
-if __name__ == "__main__":
-    game()
+
+config()
+root = Tk()
+root.title("Сапер")
+root.resizable(FALSE, FALSE)
+f1 = font.Font(family="Arial", size=9, weight="bold")
+menu = Menu(root)
+gameMenu = Menu(menu)
+menu.add_cascade(label="Гра", menu=gameMenu)
+gameMenu.add_command(label="Легкий", command=lambda: redo(6))
+gameMenu.add_command(label="Нормальний", command=lambda: redo(10))
+gameMenu.add_command(label="Складний", command=lambda: redo(15))
+gameMenu.add_command(label="Екстрим", command=lambda: redo(20))
+root.config(menu=menu)
+
+
+top = Frame(bg='gray', height=50, width=winwidth)
+top.grid_columnconfigure(tuple(range(3)), weight=1)
+top.grid(row=0, column=0, sticky='NSWE')
+
+timer = Timer(top)
+mineCounter = Counter(top, mine)
+flagCounter = Counter(top, flag, 2, "E")
+game()
+
+
+
+root.mainloop()
+
