@@ -3,7 +3,7 @@ from tkinter import messagebox as mb
 from tkinter import font
 import tempfile
 import json
-
+path = f"{tempfile.gettempdir()}/score.txt"
 def secsToText(seconds):
     mins = seconds // 60
     secs = seconds % 60
@@ -19,7 +19,6 @@ def writeScore(seconds: int, size: int = 10):
     def on_closing():
         if mb.askokcancel("Вихід", "Ви бажаєте вийти? Ваш рекорд не буде збережено"):
             quit_tk()
-    path = f"{tempfile.gettempdir()}/score.txt"
     def write():
         if (var.get().isspace() or var.get()==""):
             mb.showerror("POZOR", "Введіть ім'я!")

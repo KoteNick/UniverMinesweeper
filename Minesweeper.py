@@ -5,6 +5,7 @@ import random
 import threading
 import score
 from tkinter import messagebox as mb
+import scoretab
 
 mine = '💣'
 flag = '🚩'
@@ -48,13 +49,15 @@ class Timer(Button):
         while self.on:
             self.addSecond()
             time.sleep(1)
-    def start(self):
-        self.seconds = -1
-        self.addSecond()
+    def resume(self):
         self.on = True
         if (not self.thr.is_alive()):
             self.thr = threading.Thread(target=self.__clock, args=(), daemon=True)
             self.thr.start()
+    def start(self):
+        self.seconds = -1
+        self.addSecond()
+        self.resume()
     def secsToText(self):
         mins = self.seconds//60
         secs = self.seconds%60
@@ -246,6 +249,13 @@ def redo(s = 10):
     config()
     game()
 
+def scores():
+    root.withdraw()
+    timer.on = False
+    if ( scoretab.scores()):
+        root.deiconify()
+        timer.resume()
+
 def game():
     global grid
     gameIsOn = True
@@ -274,6 +284,8 @@ gameMenu.add_command(label="Легкий", command=lambda: redo(6))
 gameMenu.add_command(label="Нормальний", command=lambda: redo(10))
 gameMenu.add_command(label="Складний", command=lambda: redo(15))
 gameMenu.add_command(label="Екстрим", command=lambda: redo(20))
+gameMenu.add_separator()
+gameMenu.add_command(label="Найкращий час", command=scores)
 root.config(menu=menu)
 
 
