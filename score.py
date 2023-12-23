@@ -26,7 +26,7 @@ def writeScore(seconds: int, size: int = 10):
         try:
             d = data[str(size)]
         except:
-            data[size] = {}
+            data[str(size)] = {}
         data[str(size)][var.get()] = seconds
         data['last'] = var.get()
         open(path, 'w').write(json.dumps(data))
@@ -55,4 +55,4 @@ def writeScore(seconds: int, size: int = 10):
 
 if __name__=="__main__":
     print(tempfile.gettempdir())
-    writeScore(5)
+    writeScore(5, 6)
